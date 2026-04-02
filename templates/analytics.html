@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-1 transition-colors duration-300">Analytics
+                Insights</h1>
+            <p class="text-gray-500 dark:text-gray-400 transition-colors duration-300">Measure your productivity over
+                time.</p>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div
+            class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-transparent dark:border-gray-700 transition-colors duration-300">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Total Tasks</p>
+            <h3 class="text-3xl font-bold text-gray-900 dark:text-white">{{ total }}</h3>
+        </div>
+        <div
+            class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-transparent dark:border-gray-700 transition-colors duration-300">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Completed Items</p>
+            <h3 class="text-3xl font-bold text-gray-900 dark:text-white">{{ completed }}</h3>
+        </div>
+        <div
+            class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-transparent dark:border-gray-700 transition-colors duration-300">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Completion Rate</p>
+            <h3 class="text-3xl font-bold text-gray-900 dark:text-white text-primary">{{ "%.0f"|format(percentage) }}%
+            </h3>
+        </div>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- Weekly Productivity Chart -->
+        <div
+            class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-transparent dark:border-gray-700 transition-colors duration-300">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6">Weekly Productivity</h3>
+            <div class="relative h-64 w-full">
+                <canvas id="weeklyChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Subjects Distribution Chart -->
+        <div
+            class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-transparent dark:border-gray-700 transition-colors duration-300">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6">Tasks by Subject</h3>
+            <div class="relative h-64 w-full flex justify-center">
+                <canvas id="subjectsChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Shared dynamic configuration for Dark Mode Support
+        const getChartColors = () => {
+            const isDark = document.documentElement.classList.contains('dark');
+            return {
+                text: isDark ? '#9CA3AF' : '#6B7280',     // gray-400 vs gray-500
+                grid: isDark ? '#374151' : '#F3F4F6',     // gray-700 vs gray-100
+                tooltipBg: isDark ? '#1F2937' : '#FFFFFF',// gray-800 vs white
+                tooltipText: isDark ? '#F9FAFB' : '#111827'
+            };
+        };
+
+        let weeklyChart, subjectsChart;
+
+        // Data from Flask
+        const weeklyLabels = JSON.parse('{{ weekly_labels|tojson|safe }}');
+        const weeklyCompleted = JSON.parse('{{ weekly_completed|tojson|safe }}');
+        const weeklyPending = JSON.parse('{{ weekly_pending|tojson|safe }}');
+
+        const subjectLabels = JSON.parse('{{ subjects|tojson|safe }}');
+        const subjectCounts = JSON.parse('{{ subject_counts|tojson|safe }}');
+        const subjectColors = JSON.parse('{{ subject_colors|tojson|safe }}');
+
+        function renderCharts() {
+            const colors = getChartColors();
+
+            // Destroy existing instances if re-rendering on theme toggle
+            if (weeklyChart) weeklyChart.destroy();
+            if (subjectsChart) subjectsChart.destroy();
+
+            // 1. Weekly Chart (Bar)
+            const ctxWeekly = document.getElementById('weeklyChart').getContext('2d');
+            weeklyChart = new Chart(ctxWeekly, {
+                type: 'bar',
+                data: {
+                    labels: weeklyLabels,
+                    datasets: [
+                        {
+                            label: 'Completed Tasks',
+                            data: weeklyCompleted,
+                            backgroundColor: '#6366F1', // Primary color
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Pending Tasks',
+                            data: weeklyPending,
+                            backgroundColor: document.documentElement.classList.contains('dark') ? '#4B5563' : '#E5E7EB', // gray-600 vs gray-200
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: { display: false, drawBorder: false },
+                            ticks: { color: colors.text, font: { family: "'Inter', sans-serif" } }
+                        },
+                        y: {
+                            stacked: true,
+                            grid: { color: colors.grid, drawBorder: false },
+                            ticks: { color: colors.text, stepSize: 1, font: { family: "'Inter', sans-serif" } },
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: colors.text, usePointStyle: true, boxWidth: 8, font: { family: "'Inter', sans-serif" } }
+                        },
+                        tooltip: {
+                            backgroundColor: colors.tooltipBg,
+                            titleColor: colors.tooltipText,
+                            bodyColor: colors.text,
+                            borderColor: colors.grid,
+                            borderWidth: 1,
+                            padding: 12,
+                            boxPadding: 6
+                        }
+                    }
+                }
+            });
+
+            // 2. Subjects Chart (Doughnut)
+            // If there's absolutely no data, furnish a placeholder
+            const hasSubjectData = subjectCounts.reduce((a, b) => a + b, 0) > 0;
+            const sData = hasSubjectData ? subjectCounts : [1];
+            const sLabels = hasSubjectData ? subjectLabels : ['No Tasks'];
+            const sColors = hasSubjectData ? subjectColors : [document.documentElement.classList.contains('dark') ? '#374151' : '#E5E7EB'];
+
+            const ctxSubjects = document.getElementById('subjectsChart').getContext('2d');
+            subjectsChart = new Chart(ctxSubjects, {
+                type: 'doughnut',
+                data: {
+                    labels: sLabels,
+                    datasets: [{
+                        data: sData,
+                        backgroundColor: sColors,
+                        borderWidth: 2,
+                        borderColor: document.documentElement.classList.contains('dark') ? '#1F2937' : '#FFFFFF',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { color: colors.text, usePointStyle: true, padding: 20, font: { family: "'Inter', sans-serif" } }
+                        },
+                        tooltip: {
+                            enabled: hasSubjectData,
+                            backgroundColor: colors.tooltipBg,
+                            titleColor: colors.tooltipText,
+                            bodyColor: colors.text,
+                            borderColor: colors.grid,
+                            borderWidth: 1,
+                            padding: 12
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initial Render
+        renderCharts();
+
+        // Listen for Theme changes dispatched by theme.js
+        window.addEventListener('theme-changed', renderCharts);
+    });
+</script>
+{% endblock %}

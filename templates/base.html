@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Task Manager</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#6366F1',
+                        accent: '#A5B4FC'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Initial Theme Check -->
+    <script>
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            @apply bg-gray-300 dark:bg-gray-600 rounded-full transition-colors duration-300;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            @apply bg-gray-400 dark:bg-gray-500;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 antialiased min-h-screen flex transition-colors duration-300">
+
+    <!-- Sidebar -->
+    <aside
+        class="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 hidden lg:flex flex-col flex-shrink-0 transition-colors duration-300">
+        <div
+            class="h-16 flex items-center px-6 border-b border-gray-200 dark:border-gray-800 transition-colors duration-300">
+            <a href="{{ url_for('dashboard') }}"
+                class="flex items-center gap-2 text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">
+                <i class="fa-solid fa-layer-group text-primary"></i> TaskFlow
+            </a>
+        </div>
+
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto w-full">
+            <a href="{{ url_for('dashboard') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl {% if request.endpoint == 'dashboard' %}bg-primary/10 text-primary dark:bg-primary/20 font-medium{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800{% endif %} transition-colors">
+                <i class="fa-solid fa-chart-pie w-5"></i> <span class="hidden lg:block">Dashboard</span>
+            </a>
+            <a href="{{ url_for('tasks_page') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl {% if 'task' in request.endpoint and request.endpoint != 'dashboard' %}bg-primary/10 text-primary dark:bg-primary/20 font-medium{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800{% endif %} transition-colors">
+                <i class="fa-solid fa-list-check w-5"></i> <span class="hidden lg:block">Tasks</span>
+            </a>
+            <a href="{{ url_for('subjects_page') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl {% if 'subject' in request.endpoint %}bg-primary/10 text-primary dark:bg-primary/20 font-medium{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800{% endif %} transition-colors">
+                <i class="fa-solid fa-tags w-5"></i> <span class="hidden lg:block">Subjects</span>
+            </a>
+            <a href="{{ url_for('calendar_page') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl {% if request.endpoint == 'calendar_page' %}bg-primary/10 text-primary dark:bg-primary/20 font-medium{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800{% endif %} transition-colors">
+                <i class="fa-regular fa-calendar-days w-5"></i> <span class="hidden lg:block">Calendar</span>
+            </a>
+            <a href="{{ url_for('analytics_page') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl {% if request.endpoint == 'analytics_page' %}bg-primary/10 text-primary dark:bg-primary/20 font-medium{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800{% endif %} transition-colors">
+                <i class="fa-solid fa-chart-line w-5"></i> <span class="hidden lg:block">Analytics</span>
+            </a>
+
+            <div class="pt-6 mt-6 border-t border-gray-200 dark:border-gray-800"></div>
+
+            <a href="{{ url_for('settings_page') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl {% if request.endpoint == 'settings_page' %}bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-medium{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800{% endif %} transition-colors">
+                <i class="fa-solid fa-gear w-5"></i> <span class="hidden lg:block">Settings</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-gray-200 dark:border-gray-800 transition-colors duration-300">
+            <div class="flex items-center gap-3">
+                <div
+                    class="h-10 w-10 rounded-full bg-gradient-to-tr from-primary to-purple-400 flex items-center justify-center text-white font-semibold shadow-sm shrink-0">
+                    ST
+                </div>
+                <div class="truncate">
+                    <p
+                        class="text-sm font-medium text-gray-900 dark:text-white transition-colors duration-300 truncate">
+                        Student User</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300">Pro Plan</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="flex-1 flex flex-col min-w-0 transition-colors duration-300">
+
+        <!-- Top Navigation -->
+        <nav
+            class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30 transition-colors duration-300 flex-shrink-0">
+            <!-- Top header -->
+            <header
+                class="h-16 border-b border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20 transition-colors">
+                <div class="flex items-center gap-4">
+                    <button id="mobile-menu-btn"
+                        class="lg:hidden p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    <!-- Add Task Header Button (Desktop) -->
+                    <a href="{{ url_for('add_task') }}"
+                        class="hidden lg:flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors">
+                        <i class="fa-solid fa-plus text-xs"></i> Add Task
+                    </a>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <!-- User Profile & Auth -->
+                    {% if current_user.is_authenticated %}
+                    <div class="flex items-center gap-3 border-r border-gray-200 dark:border-gray-700 pr-4">
+                        {% if current_user.is_guest %}
+                        <span
+                            class="hidden sm:inline-block px-2.5 py-1 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 text-xs font-semibold rounded-md">Guest
+                            Mode</span>
+                        {% endif %}
+                        <div class="flex items-center gap-2">
+                            <div
+                                class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm">
+                                {{ current_user.name[0]|upper }}
+                            </div>
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:block">{{
+                                current_user.name }}</span>
+                        </div>
+                        <a href="{{ url_for('logout') }}" title="Logout"
+                            class="text-gray-400 hover:text-red-500 transition-colors ml-2">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <!-- Theme Toggle -->
+                    <button id="theme-toggle"
+                        class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors">
+                        <i class="fa-solid fa-sun dark:hidden"></i>
+                        <i class="fa-solid fa-moon hidden dark:block"></i>
+                    </button>
+                </div>
+            </header>
+            {% block progress_bar %}{% endblock %}
+        </nav>
+
+        <!-- Global Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="px-6 pt-4 shrink-0">
+            <div class="flex flex-col gap-2">
+                {% for category, message in messages %}
+                <div
+                    class="px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2 shadow-sm
+                    {% if category == 'success' %} bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800
+                    {% elif category == 'danger' %} bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800
+                    {% else %} bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800 {% endif %}">
+                    <i
+                        class="fa-solid {% if category == 'success' %}fa-check-circle{% elif category == 'danger' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <main class="flex-1 p-6 flex flex-col md:p-8">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Theme Script -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

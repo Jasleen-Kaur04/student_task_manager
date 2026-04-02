@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8 flex items-center gap-4">
+        <a href="{{ url_for('dashboard') }}"
+            class="w-10 h-10 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-primary hover:border-primary transition-all duration-300 shadow-sm shrink-0">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Create New Task
+            </h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 transition-colors duration-300">Add a new item to
+                your task list.</p>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-8 transition-colors duration-300">
+        <form method="POST" action="{{ url_for('add_task') }}" class="space-y-6">
+
+            <!-- Title -->
+            <div>
+                <label for="title"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">Task
+                    Title *</label>
+                <input type="text" name="title" id="title" required placeholder="e.g. Complete Calculus Assignment"
+                    class="block w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-300 placeholder-gray-400 dark:placeholder-gray-500">
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Subject Dropdown -->
+                <div class="md:col-span-1">
+                    <label for="subject_id"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">Subject</label>
+                    <div class="relative">
+                        <select id="subject_id" name="subject_id"
+                            class="block w-full pl-4 pr-10 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-all duration-300 sm:text-sm appearance-none">
+                            <option value="">No Subject</option>
+                            {% for subj in subjects %}
+                            <option value="{{ subj.id }}">{{ subj.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div
+                            class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+                            <i class="fa-solid fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deadline -->
+                <div>
+                    <label for="deadline"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">Deadline</label>
+                    <input type="date" name="deadline" id="deadline"
+                        class="block w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-300 [color-scheme:light] dark:[color-scheme:dark]">
+                </div>
+            </div>
+
+            <!-- Priority -->
+            <div>
+                <label
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">Priority
+                    Level</label>
+                <div class="flex gap-4">
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="priority" value="Low" class="peer hidden">
+                        <div
+                            class="text-center px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 peer-checked:border-green-500 peer-checked:bg-green-50 dark:peer-checked:bg-green-900/30 peer-checked:text-green-700 dark:peer-checked:text-green-400 transition-all duration-300 font-medium hover:border-green-300 dark:hover:border-green-700">
+                            Low
+                        </div>
+                    </label>
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="priority" value="Medium" class="peer hidden" checked>
+                        <div
+                            class="text-center px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 peer-checked:border-yellow-500 peer-checked:bg-yellow-50 dark:peer-checked:bg-yellow-900/30 peer-checked:text-yellow-700 dark:peer-checked:text-yellow-400 transition-all duration-300 font-medium hover:border-yellow-300 dark:hover:border-yellow-700">
+                            Medium
+                        </div>
+                    </label>
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="priority" value="High" class="peer hidden">
+                        <div
+                            class="text-center px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 peer-checked:border-red-500 peer-checked:bg-red-50 dark:peer-checked:bg-red-900/30 peer-checked:text-red-700 dark:peer-checked:text-red-400 transition-all duration-300 font-medium hover:border-red-300 dark:hover:border-red-700">
+                            High
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div>
+                <label for="description"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">Description
+                    / Notes</label>
+                <textarea name="description" id="description" rows="4"
+                    placeholder="Add any details, links or notes here..."
+                    class="block w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-300 resize-none placeholder-gray-400 dark:placeholder-gray-500"></textarea>
+            </div>
+
+            <!-- Actions -->
+            <div
+                class="pt-4 flex items-center justify-end gap-3 border-t border-gray-100 dark:border-gray-700 transition-colors duration-300">
+                <a href="{{ url_for('dashboard') }}"
+                    class="px-6 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-300 font-medium">
+                    Cancel
+                </a>
+                <button type="submit"
+                    class="px-6 py-2.5 rounded-xl bg-primary text-white font-medium hover:bg-indigo-600 transition-colors shadow-sm shadow-primary/30">
+                    Create Task
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('deadline').value = today;
+    });
+</script>
+{% endblock %}

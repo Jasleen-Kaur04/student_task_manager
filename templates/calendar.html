@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-1 transition-colors duration-300">Task
+                Calendar</h1>
+            <p class="text-gray-500 dark:text-gray-400 transition-colors duration-300">View upcoming deadlines organized
+                by date.</p>
+        </div>
+        <div class="flex gap-3">
+            <a href="{{ url_for('add_task') }}"
+                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-indigo-600 text-white font-medium shadow-sm shadow-primary/30 transition-all duration-300">
+                <i class="fa-solid fa-plus"></i> New Task
+            </a>
+        </div>
+    </div>
+
+    <!-- Calendar Container -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-2 sm:p-6 transition-colors duration-300">
+        <div id="calendar" class="fc-theme-standard dark:text-gray-200"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- FullCalendar CDN -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const calendarEl = document.getElementById('calendar');
+
+        // Parse tasks provided from Flask
+        const rawTasksText = '{{ tasks_json|tojson|safe }}';
+        const rawTasks = JSON.parse(rawTasksText);
+
+        // Map Task colors to calendar colors
+        const colorMap = {
+            'red': '#EF4444',
+            'blue': '#3B82F6',
+            'green': '#10B981',
+            'yellow': '#EAB308',
+            'purple': '#8B5CF6',
+            'pink': '#EC4899',
+            'indigo': '#6366F1',
+            'gray': '#6B7280'
+        };
+
+        const events = rawTasks.filter(task => task.deadline).map(task => {
+            return {
+                id: task.id,
+                title: task.title,
+                start: task.deadline,
+                backgroundColor: colorMap[task.subject_color] || '#6B7280',
+                borderColor: colorMap[task.subject_color] || '#6B7280',
+                classNames: ['cursor-pointer', 'rounded-md', 'px-1', 'border-0', 'text-white'],
+                extendedProps: {
+                    status: task.status
+                }
+            };
+        });
+
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,listWeek'
+            },
+            events: events,
+            eventClick: function (info) {
+                // Navigate to edit page on click
+                window.location.href = `/tasks/edit/${info.event.id}`;
+            },
+            eventContent: function (arg) {
+                // Strike through if completed
+                let isCompleted = arg.event.extendedProps.status === 'Completed';
+                let style = isCompleted ? "text-decoration: line-through; opacity: 0.7;" : "";
+                return { html: `<div class="truncate text-xs font-semibold p-1" style="${style}">${arg.event.title}</div>` };
+            },
+            height: 'auto'
+        });
+
+        calendar.render();
+
+        // Custom styling patches for Dark Mode compatibility using Tailwind classes
+        const patchCalendarStyles = () => {
+            const isDark = document.documentElement.classList.contains('dark');
+            const root = document.querySelector(':root');
+
+            if (isDark) {
+                root.style.setProperty('--fc-border-color', '#374151'); // gray-700
+                root.style.setProperty('--fc-page-bg-color', '#1F2937'); // gray-800
+                root.style.setProperty('--fc-neutral-bg-color', '#374151');
+                root.style.setProperty('--fc-list-event-hover-bg-color', '#374151');
+                root.style.setProperty('--fc-today-bg-color', 'rgba(99, 102, 241, 0.15)'); // primary tinted
+            } else {
+                root.style.setProperty('--fc-border-color', '#F3F4F6'); // gray-100
+                root.style.setProperty('--fc-page-bg-color', '#FFFFFF');
+                root.style.setProperty('--fc-neutral-bg-color', '#F9FAFB');
+                root.style.setProperty('--fc-list-event-hover-bg-color', '#F3F4F6');
+                root.style.setProperty('--fc-today-bg-color', 'rgba(99, 102, 241, 0.05)');
+            }
+        };
+
+        patchCalendarStyles();
+        window.addEventListener('theme-changed', patchCalendarStyles);
+    });
+</script>
+
+<style>
+    /* Adjust FullCalendar default button styling to match SaaS look */
+    .fc .fc-button-primary {
+        background-color: #6366F1 !important;
+        border-color: #6366F1 !important;
+        text-transform: capitalize;
+        font-weight: 500;
+        border-radius: 0.5rem;
+    }
+
+    .fc .fc-button-primary:not(:disabled):active,
+    .fc .fc-button-primary:not(:disabled).fc-button-active {
+        background-color: #4F46E5 !important;
+        border-color: #4F46E5 !important;
+    }
+
+    .fc .fc-button-primary:disabled {
+        opacity: 0.6;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 1.25rem !important;
+        font-weight: 600 !important;
+    }
+
+    .fc th {
+        padding: 0.75rem 0 !important;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        color: #6B7280;
+    }
+
+    .dark .fc th {
+        color: #9CA3AF;
+    }
+
+    .fc-daygrid-day-number {
+        font-size: 0.875rem;
+        padding: 0.5rem !important;
+    }
+
+    .dark .fc-daygrid-day-number {
+        color: #E5E7EB;
+    }
+</style>
+{% endblock %}
